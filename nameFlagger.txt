@@ -1,0 +1,9 @@
+## Title: NameFlagger
+## APIVersion: 100033
+## Version: 1.0
+## Author: @Rizzyn
+## Description: Reads messages from chat to check the player names against a list of
+## player names.  If a match is made, a character is added to the name
+## SavedVariables: NameFlaggerSavedVariables
+
+nameFlagger.lua
