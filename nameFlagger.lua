@@ -1,28 +1,41 @@
--- Define the path to the SavedVariables file
-local savedVarsPath = "TGC_SavedVariables.lua"
+nameFlagger = nameFlagger or {}
+nameFlagger.savedVariables = ZO_SavedVars:New("TGC_SavedVariables", 1, nil, { players = {} })
 
--- Function to load saved variables from file
-local function LoadSavedVariables()
-    local savedVars = {}
-    local chunk = loadfile(savedVarsPath)
-    if chunk then
-        savedVars = chunk() or {}
-    else
-        d("Could not load saved variables file.")
-    end
-    return savedVars
+local function Initialize()
+    -- Ensure savedVariables.players is initialized
+    nameFlagger.savedVariables.players = nameFlagger.savedVariables.players or {}
 end
 
--- Function to calculate the number of days between two dates
 local function daysBetween(d1, d2)
     return os.difftime(os.time(d1), os.time(d2)) / (24 * 60 * 60)
 end
 
--- Event handler for chat messages
+local function PrintTable(t, indent)
+    if type(t) ~= "table" then
+        d("Provided value is not a table")
+        return
+    else
+        d("Provided value is a table")
+    end
+
+    if not indent then indent = 0 end
+    local formatting = string.rep("  ", indent)
+    for k, v in pairs(t) do
+        if type(v) == "table" then
+            d(formatting .. tostring(k) .. ":")
+            PrintTable(v, indent + 1)
+        else
+            d(formatting .. tostring(k) .. ": " .. tostring(v))
+        end
+    end
+end
+
 local function OnChatMessage(eventCode, messageType, fromName, text, isCustomerService, fromDisplayName)
     if messageType == CHAT_CHANNEL_ZONE or messageType == CHAT_CHANNEL_SAY then
-        local savedVars = LoadSavedVariables()
-        local playerData = savedVars.players[fromDisplayName]
+        d("OnChatMessage triggered")
+        PrintTable(nameFlagger.savedVariables.players)
+        
+        local playerData = nameFlagger.savedVariables.players[fromDisplayName]
         
         if playerData then
             local currentDate = os.date("*t")
@@ -40,9 +53,28 @@ local function OnChatMessage(eventCode, messageType, fromName, text, isCustomerS
             if playerData.NI then
                 d(string.format("Not Interested: %s (%d days ago)", fromName, daysSinceAdded))
             end
+        else
+            d("No player data found for " .. fromDisplayName)
         end
     end
 end
 
--- Register the event handler for chat messages
-EVENT_MANAGER:RegisterForEvent("MyAddon", EVENT_CHAT_MESSAGE_CHANNEL, OnChatMessage)
+EVENT_MANAGER:RegisterForEvent("nameFlagger", EVENT_CHAT_MESSAGE_CHANNEL, OnChatMessage)
+
+local function OnAddonLoaded(event, addonName)
+    if addonName == "nameFlagger" then
+        Initialize()
+        EVENT_MANAGER:UnregisterForEvent("nameFlagger", EVENT_ADD_ON_LOADED)
+        d("nameFlagger initialized.")
+    end
+end
+
+EVENT_MANAGER:RegisterForEvent("nameFlagger", EVENT_ADD_ON_LOADED, OnAddonLoaded)
+
+-- Example of how to use the PrintTable function after initialization
+EVENT_MANAGER:RegisterForEvent("nameFlagger", EVENT_ADD_ON_LOADED, function(event, addonName)
+    if addonName == "nameFlagger" then
+        Initialize()
+        PrintTable(nameFlagger.savedVariables.players)
+    end
+end)
